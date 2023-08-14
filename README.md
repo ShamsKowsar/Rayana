@@ -8,4 +8,6 @@ Please install requirments with:
 pip install -r requirements.txt
 ```
 
+Please install requirments with :
+  pip install -r requirements.txt
 Then run server.py and after that, client.py file.
