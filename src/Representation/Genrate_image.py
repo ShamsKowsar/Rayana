@@ -1,27 +1,40 @@
+from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
+# Load image
+image = Image.open(rf"C:\Users\USER\Downloads\sad_1.png")
 
-def process_image(image_path, n):
-    # Open the image and convert to grayscale
-    image = Image.open(image_path).convert('L')
-    
-    # Resize the image to n x n
-    image = image.resize((n, n))
-    
-    # Convert to numpy array
-    image_array = np.array(image)
-    
-    # Normalize to binary values (1 for black, 0 for white)
-    binary_array = (image_array > 128).astype(int)  # Assuming threshold at 128
-    
-    # Plot the processed image
-    plt.imshow(binary_array, cmap='gray', interpolation='nearest')
-    plt.axis('off')
+# Print image mode
+print("Image mode:", image.mode)
+
+# Convert to NumPy array and print shape
+array = np.array(image)
+print("Array shape:", array.shape)
+
+# Print unique pixel values for each channel
+if image.mode == "RGBA":
+    r, g, b, a = array[:, :, 0], array[:, :, 1], array[:, :, 2], array[:, :, 3]
+    print(a/255)
+    black_points=np.zeros((64,64))
+    for i in range(len(a)):
+        for j in range(len(a[0])):
+            black_points[i*4][j*4]=a[i][j]
+            black_points[i*4][j*4+1]=(a[i][j])/2
+    print(black_points)
+    plt.imshow(black_points)
     plt.show()
-    
-    return binary_array
+    positive_ends=[]
+    pos=(np.where(black_points==255))
+    for i in range(len(pos[0])):
+        positive_ends.append((pos[0][i]+1,pos[1][i]+1))
+    print(positive_ends)
+    negative_ends=[]
+    neg=(np.where(black_points==127.5))
+    for i in range(len(pos[0])):
+        negative_ends.append((neg[0][i]+1,neg[1][i]+1))
+    print(rf'[{positive_ends},{negative_ends}]')
 
-# Example usage:
-matrix = process_image(rf'C:\Users\USER\Pictures\sad.png', 20)
-print(matrix)
+        
+
+else:
+    print("Unique values:", np.unique(array))
