@@ -34,6 +34,8 @@ import queue
 import System
 from System import Int32, Single
 import random
+from datetime import datetime
+
 
 program_start = time.time()
 # Constants for the Pong Game
@@ -1759,21 +1761,30 @@ def main():
     saving_thread.start()
 
 
+
+
     try:
         print("Starting alternating stimulation with parallel recording...")
         while not stop_event.is_set():
-            start_time = time.time()
             for cycle in range(8):
                 for trial in range(4):
                     stims=[1,1,1,1,1,2,2,2,2,2]
                     random.shuffle(stims)
+                    count=0
                     for stim in stims:
+                        count+=1
+                        print(f"Cycle {cycle}/ Trial{trial+1} / Stim {count}")
                         if stim==1:
                             stimulator.Send(pulse,endpoints_protocol1[0],endpoints_protocol1[1])
                         else:
                             stimulator.Send(pulse,endpoints_protocol2[0],endpoints_protocol2[1])
+                        
                         time.sleep(1)
+                    now = datetime.now()
+                    print(f"Start 20 second rest trial{trial+1} in cycle{cycle+1}   @ {now.strftime("%H:%M:%S")}")
                     time.sleep(20)
+                now = datetime.now()
+                print(f"Start 10 min rest for cycle{cycle+1}   @ {now.strftime("%H:%M:%S")}")
                 time.sleep(10*60)
             stop_event.set()
 
