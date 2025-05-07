@@ -307,7 +307,7 @@ def save_streamed_data(h5_filename, data_queue):
                                                 maxshape=(None,),  # Number of timestamps can grow
                                                 dtype='int64')
 
-        print(f"Saving streamed MEA data to {h5_filename}")
+        # print(f"Saving streamed MEA data to {h5_filename}")
 
         buffer_data = []
         buffer_timestamps = []
@@ -328,11 +328,11 @@ def save_streamed_data(h5_filename, data_queue):
                 # Set expected number of samples dynamically
                 if expected_samples is None:
                     expected_samples = data.shape[0]  # Number of samples in one chunk
-                    print(f"Detected sampling rate: {expected_samples} samples per chunk.")
+                    # print(f"Detected sampling rate: {expected_samples} samples per chunk.")
 
                 # Ensure the sample count is consistent
                 if data.shape[0] != expected_samples:
-                    print(f"Warning: Inconsistent data shape {data.shape}, expected {expected_samples} samples.")
+                    # print(f"Warning: Inconsistent data shape {data.shape}, expected {expected_samples} samples.")
                     continue
 
                 # Store in buffer
@@ -344,9 +344,9 @@ def save_streamed_data(h5_filename, data_queue):
                     num_new_samples = len(buffer_data)
 
                     # Debugging print statements to check the shapes
-                    print(f"Buffer Data Shape: {np.array(buffer_data).shape}")
-                    print(f"Expected Shape of dset_data: {dset_data.shape}")
-                    print(f"Writing {num_new_samples} new samples")
+                    # print(f"Buffer Data Shape: {np.array(buffer_data).shape}")
+                    # print(f"Expected Shape of dset_data: {dset_data.shape}")
+                    # print(f"Writing {num_new_samples} new samples")
 
                     # Resize datasets before writing to match new number of samples
                     # Resize to accommodate the correct number of samples (not just 10)
@@ -355,15 +355,15 @@ def save_streamed_data(h5_filename, data_queue):
                     dset_timestamps.resize(dset_timestamps.shape[0] + num_new_samples, axis=0)  # Resize timestamps
 
                     # Debugging print statements to check data sizes
-                    print(f"dset_data shape after resize: {dset_data.shape}")
-                    print(f"Buffer data shape: {np.array(buffer_data).shape}")
+                    # print(f"dset_data shape after resize: {dset_data.shape}")
+                    # print(f"Buffer data shape: {np.array(buffer_data).shape}")
 
                     # Flatten buffer_data to ensure it's a 1D vector
                     flat_data = np.concatenate(buffer_data)
 
                     # Check if the data length matches
                     if flat_data.shape[0] != dset_data[-total_new_samples:].shape[0]:
-                        print(f"Shape mismatch! Cannot write {flat_data.shape[0]} to {dset_data[-total_new_samples:].shape[0]}")
+                        # print(f"Shape mismatch! Cannot write {flat_data.shape[0]} to {dset_data[-total_new_samples:].shape[0]}")
                         continue
                     
                     # Convert to NumPy arrays for efficiency
