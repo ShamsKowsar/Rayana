@@ -1686,7 +1686,7 @@ def mea_data_processor(data_queue):
         except Exception as e:
             print(f"MEA Processing Error: {e}")
 
-def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=2406, batch_size=10):
+def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=57610, batch_size=10):
     """
     Saves streamed MEA data to an HDF5 file using both buffering and preallocation.
 
