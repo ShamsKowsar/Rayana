@@ -1686,7 +1686,95 @@ def mea_data_processor(data_queue):
         except Exception as e:
             print(f"MEA Processing Error: {e}")
 
-        
+def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=2406, batch_size=10):
+    """
+    Saves streamed MEA data to an HDF5 file using both buffering and preallocation.
+
+    - Each data chunk is a 1D array of size 8089600 (4096 * 1975).
+    - Preallocates space for initial_chunks and expands if needed.
+    - Buffers a number of chunks (batch_size) before writing to improve I/O performance.
+    """
+   
+    from queue import Empty
+
+    global stop_event
+
+    samples_per_chunk = 4096 * 1975  # Total samples per data chunk
+    total_chunks_allocated = initial_chunks  # How many chunks we preallocate
+    total_chunks_written = 0  # Tracks how many chunks have been written so far
+
+    # --- Create the HDF5 file and preallocate the datasets ---
+    with h5py.File(h5_filename, "w") as h5file:
+        # Preallocate 1D dataset for electrode data
+        dset_data = h5file.create_dataset(
+            "electrode_data",
+            shape=(total_chunks_allocated * samples_per_chunk,),
+            maxshape=(None,),  # Allow unlimited growth
+            dtype='uint16'
+        )
+
+        # Preallocate dataset for timestamps (1 per chunk)
+        dset_timestamps = h5file.create_dataset(
+            "timestamps",
+            shape=(total_chunks_allocated,),
+            maxshape=(None,),
+            dtype='int64'
+        )
+
+        print(f"Preallocated space for {total_chunks_allocated} chunks.")
+        prealloc_done.set()  # Signal to main thread that preallocation is finished
+
+
+        # --- Temporary buffers to store incoming data before writing in batches ---
+        buffer_data = []
+        buffer_timestamps = []
+
+        # --- Main loop for asynchronous saving ---
+        while not stop_event.is_set():
+            try:
+                # Wait for new data and timestamp from the queue
+                data, timestamp = data_queue.get(timeout=1)
+
+                # Sanity check on chunk shape
+                if data.shape[0] != samples_per_chunk:
+                    print(f"Unexpected data shape: {data.shape[0]}, expected {samples_per_chunk}")
+                    continue
+
+                # Store data and timestamp in the buffer
+                buffer_data.append(data)
+                buffer_timestamps.append(timestamp)
+
+                # --- Write to HDF5 in batches ---
+                if len(buffer_data) >= batch_size:
+                    num_new_chunks = len(buffer_data)
+                    total_new_samples = num_new_chunks * samples_per_chunk
+
+                    # --- Resize dataset if not enough space left ---
+                    if total_chunks_written + num_new_chunks > total_chunks_allocated:
+                        new_alloc = total_chunks_allocated * 2
+                        dset_data.resize((new_alloc * samples_per_chunk,))
+                        dset_timestamps.resize((new_alloc,))
+                        total_chunks_allocated = new_alloc
+                        print(f"Resized datasets to hold {total_chunks_allocated} chunks.")
+
+                    # --- Write buffer to dataset ---
+                    start_idx = total_chunks_written * samples_per_chunk
+                    end_idx = start_idx + total_new_samples
+
+                    dset_data[start_idx:end_idx] = np.concatenate(buffer_data)
+                    dset_timestamps[total_chunks_written:total_chunks_written + num_new_chunks] = buffer_timestamps
+
+                    # Update count and clear buffer
+                    total_chunks_written += num_new_chunks
+                    buffer_data.clear()
+                    buffer_timestamps.clear()
+
+            except Empty:
+                continue  # No data available right now
+            except Exception as e:
+                print(f"Error while saving data: {e}")
+
+        print("Data saving stopped.")        
 # --- Initialize and Start Threads ---
 
 
@@ -1701,6 +1789,8 @@ def main():
     
     # Initialize BioCam
     stop_event = Event()
+    prealloc_done = Event()
+    
     initialize_biocam()
     # Access the MeaPlate property (IMeaPlatePilot) of the BioCam instance
     meaPlatePilot = bioCam.MeaPlate
@@ -1789,8 +1879,13 @@ def main():
     #processing_thread = Thread(target=data_processing_thread, daemon=True)
     #processing_thread.start()
     h5_filename = "train_session.h5"
-    saving_thread = Thread(target=save_streamed_data, args=(h5_filename, data_queue), daemon=True)
+    saving_thread = Thread(target=save_streamed_data_preallocated, args=(h5_filename, data_queue,prealloc_done ), daemon=True)
+    #saving_thread = Thread(target=save_streamed_data, args=(h5_filename, data_queue), daemon=True)
     saving_thread.start()
+
+    print("Waiting for saving thread to be ready...")
+    prealloc_done.wait()  # Wait here
+    print("OK, ready! Let's start stimulation.")
 
 
 
