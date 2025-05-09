@@ -129,6 +129,7 @@ LoadingProtocolProgressChangedEventArgsType = assembly_biocam.GetType("_3Brain.B
 bioCam = None
 protocol_manager = None
 is_streaming = False
+meaPlatePilot = None
 
 # Global variable for spike counts
 spike_counts = None
@@ -192,15 +193,13 @@ def initialize_biocam():
 
 # Function to set chamber temperature to a target value
 def set_chamber_temperature(target_temperature_celsius):
-    global bioCam, slot_index
+    global bioCam, slot_index, meaPlatePilot
     if bioCam is None:
         print("Error: BioCam not initialized. Please initialize BioCam first.")
         return
     
     try:
-        # Access the MeaPlate property (IMeaPlatePilot) of the BioCam instance
-        meaPlate_property = bioCam.GetType().GetProperty("MeaPlate")
-        meaPlatePilot = meaPlate_property.GetValue(bioCam)
+       
         
         if meaPlatePilot is None:
             print("Error: No IMeaPlatePilot found!")
@@ -214,16 +213,29 @@ def set_chamber_temperature(target_temperature_celsius):
             print("Error: No MeaPlateSettings found!")
             return
         
+        
+        
+        # Check if temperature control is on
+        is_temp_control_on_property = plate_settings.GetType().GetProperty("IsChamberTemperatureControlOn")
+        is_temp_control_on = is_temp_control_on_property.GetValue(plate_settings)
+
+        print(f"Chamber temperature control is {'ON' if is_temp_control_on else 'OFF'}.")
+
+        # If it's OFF, turn it ON
+        if not is_temp_control_on:
+             is_temp_control_on_property.SetValue(plate_settings, True)
+             print("Chamber temperature control has been turned ON.")
+
         # Set the chamber temperature dynamically using Invoke
         set_temperature_property = plate_settings.GetType().GetProperty("SetChamberTemperatureCelsius")
-        set_temperature_property.SetValue(plate_settings, target_temperature_celsius)
+        set_temperature_property.SetValue(plate_settings, Single(target_temperature_celsius))
         
         print(f"Chamber temperature set to {target_temperature_celsius}°C.")
         
         # Check the current plate temperature until it reaches the target
         while True:
-            # Access the ReadPlateTemperatureCelsius property (which returns an array of float)
-            read_temperature_property = plate_settings.GetType().GetProperty("ReadPlateTemperatureCelsius")
+            # Access the ReadChamberTemperatureCelsius property (which returns an array of float)
+            read_temperature_property = plate_settings.GetType().GetProperty("ReadChamberTemperatureCelsius")
             current_temperatures = read_temperature_property.GetValue(plate_settings)
             
             # Check if the temperatures array is not empty
@@ -246,12 +258,13 @@ def set_chamber_temperature(target_temperature_celsius):
     except Exception as e:
         print(f"Error setting chamber temperature: {e}")
 
+
 def terminate_acquisition():
     """
     Terminates acquisition by stopping streaming, releasing BioCam, 
     and closing resources safely.
     """
-    global bioCam, is_streaming, slot_index
+    global bioCam, is_streaming, slot_index, meaPlatePilot
 
     if bioCam is None:
         print("No active BioCam to terminate.")
@@ -264,6 +277,23 @@ def terminate_acquisition():
             stop_streaming_method.Invoke(bioCam, [])
             is_streaming = False
             print("Data streaming stopped successfully.")
+
+        # Turn off Chamber heater
+        
+        # Access MeaPlateSettings from IMeaPlatePilot
+        settings_property = meaPlatePilot.GetType().GetProperty("Settings")
+        plate_settings = settings_property.GetValue(meaPlatePilot)
+        
+        # Check if temperature control is on
+        is_temp_control_on_property = plate_settings.GetType().GetProperty("IsChamberTemperatureControlOn")
+        is_temp_control_on = is_temp_control_on_property.GetValue(plate_settings)
+
+        print(f"Chamber temperature control is {'ON' if is_temp_control_on else 'OFF'}.")
+
+        # If it's ON, turn it OFF
+        if is_temp_control_on:
+             is_temp_control_on_property.SetValue(plate_settings, False)
+             print("Chamber temperature control has been turned OFF.")
 
         # Close the BioCam connection
         close_method = bioCam.GetType().GetMethod("Close")
@@ -1667,12 +1697,14 @@ def main():
     - Alternates every second
     - Continuous data recording in parallel
     """
-    global bioCam, stop_event, protocol_manager
+    global bioCam, stop_event, protocol_manager, meaPlatePilot
     
     # Initialize BioCam
     stop_event = Event()
     initialize_biocam()
-    #set_chamber_temperature(37.0)
+    # Access the MeaPlate property (IMeaPlatePilot) of the BioCam instance
+    meaPlatePilot = bioCam.MeaPlate
+    set_chamber_temperature(37.0)
 
     # Setup data recording
     data_queue = Queue(maxsize=10)
