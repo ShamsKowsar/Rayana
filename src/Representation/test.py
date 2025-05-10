@@ -1685,7 +1685,7 @@ def mea_data_processor(data_queue):
 
         
 # --- Initialize and Start Threads ---
-def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=24600, batch_size=10):
+def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=2460*10, batch_size=10):
     """
     Saves streamed MEA data to an HDF5 file using both buffering and preallocation.
 
@@ -1894,18 +1894,18 @@ def main():
                 time.sleep(30*60)   #sleep for 30 mins, only record data and no stimulation
             start_time = time.time()
 
-            stims=[1,1,1,1,1,2,2,2,2,2,1,1,1,1,1,2,2,2,2,2]
+            stims=[1,1,1,1,1,2,2,2,2,2]
             random.shuffle(stims)
             for stim in stims:
                 if stim==1:
                     stimulator.Send(pulse,endpoints_protocol1[0],endpoints_protocol1[1])
                 else:
                     stimulator.Send(pulse,endpoints_protocol2[0],endpoints_protocol2[1])
-                time.sleep(30)
+                time.sleep(60)
 
             stop_event.set()
             if session_type==0:     #pre-train test
-                time.sleep(30*60)   #sleep for 30 mins, only record data and no stimulation
+                time.sleep(10)   #sleep for 30 mins, only record data and no stimulation
 
                     
 

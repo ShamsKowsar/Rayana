@@ -1686,7 +1686,7 @@ def mea_data_processor(data_queue):
         except Exception as e:
             print(f"MEA Processing Error: {e}")
 
-def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=57610, batch_size=10):
+def save_streamed_data_preallocated(h5_filename, data_queue, prealloc_done, initial_chunks=5_000*10, batch_size=10):
     """
     Saves streamed MEA data to an HDF5 file using both buffering and preallocation.
 
@@ -1907,12 +1907,20 @@ def main():
                             stimulator.Send(pulse,endpoints_protocol2[0],endpoints_protocol2[1])
                         
                         time.sleep(1)
+                    if trial==3:
+                        print('Skipping last trial rest')
+                    else:
+                            
+                        now = datetime.now()
+                        print(f"Start 20 second rest trial{trial+1} in cycle{cycle+1}   @ {now.strftime("%H:%M:%S")}")
+                        time.sleep(20)
+                if cycle==7:
+                    print('Skipping last cycle rest')
+                else:
                     now = datetime.now()
-                    print(f"Start 20 second rest trial{trial+1} in cycle{cycle+1}   @ {now.strftime("%H:%M:%S")}")
-                    time.sleep(20)
-                now = datetime.now()
-                print(f"Start 10 min rest for cycle{cycle+1}   @ {now.strftime("%H:%M:%S")}")
-                time.sleep(10*60)
+                    print(f"Start 10 min rest for cycle{cycle+1}   @ {now.strftime("%H:%M:%S")}")
+                    time.sleep(10*60)
+                
             stop_event.set()
 
                     
