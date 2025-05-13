@@ -188,6 +188,20 @@ def initialize_biocam():
         print(f"Error during BioCam initialization: {e}")
         bioCam = None
        
+def set_stimulation_calibration(stimulatorSettings, chip_calibration_delay = 5000):
+    
+    try:
+    
+        is_stim_calibration_on = stimulatorSettings.GetType().GetProperty("IsStimCalibrationOn").GetValue(stimulatorSettings)
+        if not is_stim_calibration_on:
+            is_stim_calibration_on = stimulatorSettings.GetType().GetProperty("IsStimCalibrationOn").SetValue(stimulatorSettings,True)
+            print(f"is stimulation calibration on? {is_stim_calibration_on} ")
+            
+        stimulatorSettings.GetType().GetProperty("CalibrationDistanceMicroSec").SetValue(stimulatorSettings,Single(chip_calibration_delay))
+
+    except Exception as e:    
+        print(f"Error setting stimulation callibration: {e}")
+
 
 # Function to set chamber temperature to a target value
 def set_chamber_temperature(target_temperature_celsius):
@@ -1824,6 +1838,15 @@ def main():
 
     # Initialize stimulator
     stimulator = bioCam.Stimulator
+
+    stimulatorSettings = stimulator.Settings 
+    set_stimulation_calibration(stimulatorSettings)
+    is_stim_calibration_on = stimulatorSettings.GetType().GetProperty("IsStimCalibrationOn").GetValue(stimulatorSettings)
+    print(f"is stim calibration on: {is_stim_calibration_on}")
+        
+    calibration_distance_us = stimulatorSettings.GetType().GetProperty("CalibrationDistanceMicroSec").GetValue(stimulatorSettings)
+    print(f"Calibration distance usec: {calibration_distance_us}")  # chip calibration delay , default = 5000 us
+    
     stimulator.Initialize()
     stimulator.Start()
     protocol_manager = stimulator.Protocol
