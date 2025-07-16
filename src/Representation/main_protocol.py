@@ -1,9 +1,9 @@
 
 epoch_id=1
-chip_id='pbs-theta_burst'
+chip_id='old_culture_test'
 session_type=0
 stim_type='coupling'
-high_freq_coupling=10.0
+high_freq_coupling=100.0
 low_freq_coupling=5.0
 between_stims_rest=10.0
 num_cycles=8
@@ -850,6 +850,266 @@ def pre_train():
 
         print("End of pre-train session")
         
+
+def simple_test():
+    global epoch_id, chip_id,session_type
+
+    global bioCam, stop_event, protocol_manager, meaPlatePilot,start_acq
+    
+    
+    stop_event = Event()
+    prealloc_done = Event()
+    
+    initialize_biocam()
+    
+    meaPlatePilot = bioCam.MeaPlate
+
+    biocam_settings = bioCam.Settings
+    
+    
+    biocam_settings = bioCam.Settings
+    def get_setting(biocam_settings,prop_name):
+        prop = biocam_settings.GetType().GetProperty(prop_name)
+        return prop.GetValue(biocam_settings)
+    def set_setting(biocam_settings,prop_name,value=True):
+        prop = biocam_settings.GetType().GetProperty(prop_name)
+        return prop.SetValue(biocam_settings,value)
+
+
+
+
+
+   
+    BiocamSettings = bioCam.Settings
+
+    
+    hp_pre_enabled = get_setting(BiocamSettings,"IsHpPreEnabled")
+    hp_post_enabled = get_setting(BiocamSettings,"IsHpPostEnabled")
+    lp_enabled = get_setting(BiocamSettings,"IsLpEnabled")
+        
+    hp_pre_cutoff = get_setting(BiocamSettings,"HpPreCutoffFrequency")
+    hp_post_cutoff = get_setting(BiocamSettings,"HpPostCutOffFrequency")
+    hp_post_order = get_setting(BiocamSettings,"HpPostOrder")
+    lp_cutoff = get_setting(BiocamSettings,"LpCutoffFrequency")
+        
+    
+    print(f"High-pass pre filter enabled: {hp_pre_enabled}")
+    print(f"High-pass pre filter cutoff: {hp_pre_cutoff} Hz")
+        
+    print(f"High-pass post filter enabled: {hp_post_enabled}")
+    print(f"High-pass post filter cutoff: {hp_post_cutoff} Hz")
+    print(f"High-pass post filter order: {hp_post_order}")
+        
+    print(f"Low-pass filter enabled: {lp_enabled}")
+    print(f"Low-pass filter cutoff: {lp_cutoff} Hz")
+    set_setting(BiocamSettings,"IsHpPreEnabled")
+    set_setting(BiocamSettings,"IsHpPostEnabled")
+
+    hp_pre_enabled = get_setting(BiocamSettings,"IsHpPreEnabled")
+    hp_post_enabled = get_setting(BiocamSettings,"IsHpPostEnabled")
+    lp_enabled = get_setting(BiocamSettings,"IsLpEnabled")
+        
+    hp_pre_cutoff = get_setting(BiocamSettings,"HpPreCutoffFrequency")
+    hp_post_cutoff = get_setting(BiocamSettings,"HpPostCutOffFrequency")
+    hp_post_order = get_setting(BiocamSettings,"HpPostOrder")
+    lp_cutoff = get_setting(BiocamSettings,"LpCutoffFrequency")
+        
+    
+    print(f"High-pass pre filter enabled: {hp_pre_enabled}")
+    print(f"High-pass pre filter cutoff: {hp_pre_cutoff} Hz")
+        
+    print(f"High-pass post filter enabled: {hp_post_enabled}")
+    print(f"High-pass post filter cutoff: {hp_post_cutoff} Hz")
+    print(f"High-pass post filter order: {hp_post_order}")
+        
+    print(f"Low-pass filter enabled: {lp_enabled}")
+    print(f"Low-pass filter cutoff: {lp_cutoff} Hz")
+
+    
+    
+    
+    
+    
+    
+
+
+
+    
+    
+
+    
+    io_signal_settings = biocam_settings.IOSignalsSettings
+    
+    
+    target_signals = [0, 1]  
+
+    for key in io_signal_settings.Keys:
+        if int(key) in target_signals:
+            
+            setting_obj = io_signal_settings[key]
+            
+            
+            setting_obj.GetType().GetProperty("IsOn").SetValue(setting_obj, True)
+            
+            
+            method = setting_obj.GetType().GetMethod("SetOutputChToFirstAvailable")
+            method.Invoke(setting_obj, [])
+            
+            print(f"Enabled and assigned IO signal: {key.ToString()}")
+            
+            
+            output_ch_prop = setting_obj.GetType().GetProperty("OutputCh")
+            ch_coord = output_ch_prop.GetValue(setting_obj)
+            
+            
+            row_prop = ch_coord.GetType().GetProperty("Row").GetValue(ch_coord)
+            col_prop = ch_coord.GetType().GetProperty("Col").GetValue(ch_coord)
+            
+            
+            
+            print(f"{key.ToString()} assigned to OutputCh: Row {row_prop}, Column {col_prop}")
+            
+    
+    set_chamber_temperature(37.0)
+
+    
+    data_queue = Queue(maxsize=10)
+    timestamp_queue = Queue(maxsize=10)
+    initialize_streaming(data_queue, timestamp_queue)
+
+    
+    positive_electrodes = [(17, 17), (17, 21), (17, 41), (17, 45), (21, 17), (21, 21), (21, 41), (21, 45), (25, 17), (25, 21), (25, 41), (25, 45), (33, 9), (33, 13), (33, 49), (33, 53), (37, 13), (37, 17), (37, 45), (37, 49), (41, 17), (41, 21), (41, 41), (41, 45), (45, 21), (45, 25), (45, 29), (45, 33), (45, 37), (45, 41)]
+    negative_electrodes = [(17, 18), (17, 22), (17, 42), (17, 46), (21, 18), (21, 22), (21, 42), (21, 46), (25, 18), (25, 22), (25, 42), (25, 46), (33, 10), (33, 14), (33, 50), (33, 54), (37, 14), (37, 18), (37, 46), (37, 50), (41, 18), (41, 22), (41, 42), (41, 46), (45, 22), (45, 26), (45, 30), (45, 34), (45, 38), (45, 42)]
+
+    alt_positive_electrodes = [(13, 17), (13, 21), (13, 41), (13, 45), (17, 17), (17, 21), (17, 41), (17, 45), (21, 17), (21, 21), (21, 41), (21, 45), (33, 21), (33, 25), (33, 29), (33, 33), (33, 37), (33, 41), (37, 17), (37, 21), (37, 41), (37, 45), (41, 13), (41, 17), (41, 45), (41, 49), (45, 9), (45, 13), (45, 49), (45, 53)]
+    alt_negative_electrodes = [(13, 18), (13, 22), (13, 42), (13, 46), (17, 18), (17, 22), (17, 42), (17, 46), (21, 18), (21, 22), (21, 42), (21, 46), (33, 22), (33, 26), (33, 30), (33, 34), (33, 38), (33, 42), (37, 18), (37, 22), (37, 42), (37, 46), (41, 14), (41, 18), (41, 46), (41, 50), (45, 10), (45, 14), (45, 50), (45, 54)]
+
+    
+    positive_coords = create_chcoords(positive_electrodes)
+    negative_coords = create_chcoords(negative_electrodes)
+    alt_positive_coords = create_chcoords(alt_positive_electrodes)
+    alt_negative_coords = create_chcoords(alt_negative_electrodes)
+
+    endpoints_protocol1 = (
+        create_endpoints(positive_coords, "Pos"),
+        create_endpoints(negative_coords, "Neg")
+    )
+    
+    endpoints_protocol2 = (
+        create_endpoints(alt_positive_coords, "Pos_Alt"),
+        create_endpoints(alt_negative_coords, "Neg_Alt")
+    )
+
+    
+    stimulator = bioCam.Stimulator
+    stimulator.Initialize()
+    stimulator.Start()
+
+    
+    stimulatorSettings = stimulator.Settings 
+    set_stimulation_calibration(stimulatorSettings)
+        
+    is_stim_calibration_on = stimulatorSettings.GetType().GetProperty("IsStimCalibrationOn").GetValue(stimulatorSettings)
+    print(f"is stim calibration on: {is_stim_calibration_on}")
+        
+    calibration_distance_us = stimulatorSettings.GetType().GetProperty("CalibrationDistanceMicroSec").GetValue(stimulatorSettings)
+    print(f"Calibration distance usec: {calibration_distance_us}")  
+
+    
+
+    protocol_manager = stimulator.Protocol
+
+    
+    protocols = []
+    for i in range(2):
+        stim_props = create_stim_properties()
+        pulse = create_rectangular_pulse(
+            name=f"BasicPulse_{i}",
+            stim_properties=stim_props,
+            amp1=positive_amplitude,
+            width1=0.5*(1/high_freq_coupling)*1_000_000,
+            inter_width=between_phase_offset,
+            amp2=negative_amplitude,
+            width2=0.5*(1/high_freq_coupling)*1_000_000
+        )
+        
+        protocol = create_basic_protocol(
+            name=f"Alternating_{i}",
+            pulse=pulse,
+            stim_properties=stim_props,
+            frequency=1,
+            duration=0.05
+        )
+        
+        if i == 0:
+            protocol.PositiveEndPoints = endpoints_protocol1[0]
+            protocol.NegativeEndPoints = endpoints_protocol1[1]
+
+
+        else:
+            protocol.PositiveEndPoints = endpoints_protocol2[0]
+            protocol.NegativeEndPoints = endpoints_protocol2[1]
+            
+        protocols.append(protocol)
+
+
+
+    
+    
+    
+    h5_filename = rf"D:\Representation\streamed_data\{chip_id}_preTrain_e{epoch_id}.h5"
+    
+    saving_thread = Thread(target=save_streamed_data_preallocated, args=(h5_filename, data_queue,prealloc_done ), daemon=True)
+    saving_thread.start()
+
+    print("Waiting for saving thread to be ready...")
+    prealloc_done.wait()  
+    print("OK, ready! Let's start stimulation.")
+    stim_times=[]
+    stim_types = []
+
+
+    try:
+        print("Starting alternating stimulation with parallel recording...")
+        while(time.time()-start_acq)<=10:
+            time.sleep(0.1)
+        while not stop_event.is_set():
+   
+            start_time = time.time()
+
+            stims=[1,1,1,1,1,2,2,2,2,2]
+            random.shuffle(stims)
+            for stim in stims:
+
+                stim_times.append(time.time()-start_acq)
+                stim_types.append(stim)
+                
+                for count_for_low_freq in range(5):
+                    for count_for_high_freq in range(5):
+                        stimulator.Send(pulse,endpoints_protocol1[0] if stim==1 else endpoints_protocol2[0],endpoints_protocol1[1] if stim==1 else endpoints_protocol2[1])
+                        time.sleep(1.0/high_freq_coupling+offset_between_high_and_low_of_biphasic)
+                    time.sleep(0.2)
+                time.sleep(10)
+                
+            stop_event.set()
+            time.sleep(10)
+
+    except KeyboardInterrupt:
+        print("Experiment stopped by user")
+    finally:
+        stop_event.set()
+        saving_thread.join()
+        
+        terminate_acquisition()
+        with open(rf'{chip_id}_stim_times_preTrain_e{epoch_id}.pkl', 'wb') as file:
+            pickle.dump(stim_times, file)
+
+        with open(rf'{chip_id}_stim_types_preTrain_e{epoch_id}.pkl' , 'wb') as file :
+            pickle.dump(stim_types,file)
+
+
+        print("End of pre-train session")
+        
         
 def post_train():
     global epoch_id, chip_id,session_type
@@ -1423,6 +1683,7 @@ def create_basic_protocol(name, pulse, stim_properties, frequency, duration):
     
     return protocol
 if __name__ == "__main__":
-    pre_train()
-    train()
-    post_train()
+    # pre_train()
+    # train()
+    # post_train()
+    simple_test()
