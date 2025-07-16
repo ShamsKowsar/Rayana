@@ -15,6 +15,11 @@ negative_amplitude=-15.0
 between_phase_offset=25.0
 offset_between_high_and_low_of_biphasic=between_phase_offset/1_000_000
 
+
+
+
+
+
 from System import Int32, Int64, Double, String, Single
 from matplotlib.colorbar import Colorbar
 from queue import Queue
@@ -852,7 +857,8 @@ def pre_train():
         
 
 def simple_test():
-    global epoch_id, chip_id,session_type
+    global epoch_id,chip_id,session_type,stim_type,high_freq_coupling,low_freq_coupling,between_stims_rest,num_cycles,num_trials_in_each_cycle,between_cycles_rest,between_trials_rest,positive_amplitude,negative_amplitude,between_phase_offset,offset_between_high_and_low_of_biphasic
+
 
     global bioCam, stop_event, protocol_manager, meaPlatePilot,start_acq
     
